@@ -1,0 +1,112 @@
+---
+title: "Milestone Report Rubric"
+author: "Daniel Sananez"
+date: "Friday, December 11, 2015"
+output: html_document
+---
+
+```{r, echo=FALSE, cache=TRUE}
+#Read the raw data
+blogs <- readLines("data/raw-data/final/en_US/en_US.blogs.txt", skipNul=T, encoding = "UTF-8")
+news <- file("data/raw-data/final/en_US/en_US.news.txt", open="rb")
+news <- readLines(news, skipNul=T, encoding = "UTF-8")
+tweets <- readLines("data/raw-data/final/en_US/en_US.twitter.txt", skipNul=T, encoding = "UTF-8")
+```
+
+###Summary
+The goal in this document is to display that I've gotten used to working with the data and that I'm on track to create my prediction algorithm. Here, I will be describing my exploratory analysis and my future goals for my app. I would like to add that, as I explained in [this forum post](https://class.coursera.org/dsscapstone-006/forum/thread?thread_id=34), I'll be using a sample of the data for the advanced part of the analysis.
+
+###Data
+For this project, the [datasaet](https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip) consists in 3 text files containing a combination of english sentences. Each file represents the source of the texts (blogs, news and tweets).
+
+I used fuctions like `dir.create()`, `download.file()` and `unzip()` to download and unzip the data in a specefic folder. 
+
+###Basic Exploratory Analysis
+In my Basic Exploratory Analysis, I'll be using the whole dataset. Here I'll be doing some word, line, and character counts for each of the 3 files. 
+
+```{r, echo=FALSE, cache=TRUE}
+bea <- data.frame(file = c("Blogs", "News", "Tweets"),
+           lineCt = c(length(blogs), length(news), length(tweets)),
+           wordCt = c(sum(sapply(gregexpr("\\W+", blogs), length) + 1),
+                      sum(sapply(gregexpr("\\W+", news), length) + 1),                      
+                      sum(sapply(gregexpr("\\W+", tweets), length) + 1)
+                      ),
+           charCt = c(sum(nchar(blogs)),sum(nchar(news)),sum(nchar(tweets)))
+           )
+bea$avgWdLn <- bea$wordCt/bea$lineCt
+bea$avgChWd <- bea$charCt/bea$wordCt
+```
+
+```{r, echo=FALSE, cache=TRUE}
+colnames(bea) <- c("File", "Line Count", "Word Count", "Character Count", "Avg. Word/Line", "Avg Char/Word") 
+rownames(bea) <- c("Blogs", "News", "Tweets")
+bea[,-1]
+coma <- function(x){
+  format(round(as.numeric(x), 1), nsmall=1, big.mark=",")
+}
+```
+
+Here we can see some interesting facts about the datasets. First, the blogs have the lowest amount of lines (`r coma(bea[1,2])`) but the highest amount of words (`r coma(bea[1,3])`). This is because of the high average words-per-lines blogs have (`r coma(bea[1,5])`). On the other hand, tweets suffers the opposite effect: most lines (`r coma(bea[3,2])`) with least words (`r coma(bea[3,3])`). This one is more obvious because of the characters limit tweets have (140 characters), which drops the average words-per-tweet to `r coma(bea[3,5])` (`r coma(((bea[1,5]-bea[3,5])*100)/bea[1,5])`% lower than blog's average word per line). Also, we can see that tweets' dataset have the lowest character-per-word average (`r coma(bea[3,6])`). Do people use shorter words in tweets to save characters?
+
+###Advanced Exploratory Analysis
+
+As I already mentioned, I used a `sample()` of the dataset for this part of the analysis. However, before sampling the data I did some [Normalization](https://en.wikipedia.org/wiki/Text_normalization) and [Tokenization](https://en.wikipedia.org/wiki/Tokenization_(lexical_analysis)) using `library(tm)` package.
+
+####Wordcloud
+
+I used a combination of the 3 datasets samples to plot a [wordcloud](https://cran.r-project.org/web/packages/wordcloud/wordcloud.pdf) unsing `library(wordcloud)` package. Here is what I got:
+
+
+```{r, echo=FALSE, cache=TRUE, results=FALSE, warning=FALSE, comment=FALSE, warning=FALSE}
+unigram <- readRDS("data/tokens/trainUnigram.rds")
+unifreq <- table(unigram)[order(table(unigram), decreasing = T)]
+unifreq <- unifreq[!grepl("<", names(unifreq))]
+library(wordcloud)
+wordcloud(names(unifreq), unifreq, scale = c(6,1), max.words=200, colors=brewer.pal(6,"Dark2"),random.order=FALSE)
+```
+
+The wordcloud seems very accurate. As expected, we can see very common english words on top of the rank. Playing with the code, I could determine that the top 125 words in my sample accounts for 50.53% of the frequencies. Interesting fact.
+
+####N-grams
+
+Now, lets take a look to the top [n-grams](https://en.wikipedia.org/wiki/N-gram) I found in my sample. I did bi-grams, tri-grmas and four-grams, let's see the results.
+
+**Bi-grams**
+
+My top 15 bi-grams are:
+
+```{r, echo=FALSE, cache=TRUE}
+bigram <- readRDS("data/tokens/trainBigram.rds")
+bifreq <- table(bigram)[order(table(bigram), decreasing = T)]
+bifreq <- bifreq[!grepl("<", names(bifreq))]
+bifreq[1:15]
+```
+
+**Tri-grams**
+
+My top 15 tri-grams are:
+
+```{r, echo=FALSE, cache=TRUE}
+trigram <- readRDS("data/tokens/trainTrigram.rds")
+trifreq <- table(trigram)[order(table(trigram), decreasing = T)]
+trifreq <- trifreq[!grepl("<", names(trifreq))]
+trifreq[1:15]
+```
+
+**Four-grams**
+
+My top 15 four-grams are:
+
+```{r, echo=FALSE, cache=TRUE}
+fourgram <- readRDS("data/tokens/trainFourgram.rds")
+fourfreq <- table(fourgram)[order(table(fourgram), decreasing = T)]
+fourfreq <- fourfreq[!grepl("<", names(fourfreq))]
+fourfreq[1:15]
+```
+
+Doing this analysis I could realize my normalization needs a bit of extra tuning. I'll need to change letters like "t", "d", "s" and "m" for "not", "had", "is" and "am", respectively. Also, some words like "don"(do) need changes.
+
+###Next Steps
+
+In order to continue working on my prediction app, I want to combine from bi-grams to four-grams in a complex model. I would like to also add a [Linear Interpolation](https://en.wikipedia.org/wiki/Linear_interpolation) [Smoothing](https://en.wikipedia.org/wiki/Smoothing), but I need to do some research before. Later on, I'll be adding the proffanity filter and fixing the normalizations details that came out of this analysis.
+

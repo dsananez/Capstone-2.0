@@ -1,0 +1,58 @@
+---
+title: "Milestone Report Rubric"
+author: "Daniel Sananez"
+date: "Friday, December 11, 2015"
+output: html_document
+---
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+summary(cars)
+```
+
+You can also embed plots, for example:
+
+```{r, echo=FALSE}
+plot(cars)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+```{r, echo=FALSE, cache=TRUE}
+#Read the raw data
+blogs <- readLines("data/raw-data/final/en_US/en_US.blogs.txt", skipNul=T, encoding = "UTF-8")
+news <- file("data/raw-data/final/en_US/en_US.news.txt", open="rb")
+news <- readLines(news, skipNul=T, encoding = "UTF-8")
+tweets <- readLines("data/raw-data/final/en_US/en_US.twitter.txt", skipNul=T, encoding = "UTF-8")
+```
+
+#Summary
+The goal in this document is to display that I've gotten used to working with the data and that I'm on track to create my prediction algorithm. Here, I will be describing my exploratory analysis and my future goals for my app. I would like to add that, as I explained in [this forum post](https://class.coursera.org/dsscapstone-006/forum/thread?thread_id=34), I'll be using a sample of the data for the advanced part of the analysis.
+
+#Data
+For this project, the [datasaet](https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip) consists in 3 text files containing a combination of english sentences. Each file represents the source of the texts (blogs, news and tweets).
+
+I used fuctions like `dir.create`, `download.file` and `unzip` to download and unzip the data in a specefic folder. 
+
+#Basic Exploratory Analysis
+In my Basic Exploratory Analysis, I'll be using the whole dataset. Here I'll be doing some word, line, and character counts; for each of the 3 files. 
+
+```{r, echo=FALSE, cache=TRUE}
+#Read the raw data
+bea <- data.frame(file = c("Blogs", "News", "Tweets"),
+           lineCt = c(length(blogs), length(news), length(tweets)),
+           wordCt = c(sum(sapply(gregexpr("\\W+", blogs), length) + 1),
+                      sum(sapply(gregexpr("\\W+", news), length) + 1),                      
+                      sum(sapply(gregexpr("\\W+", tweets), length) + 1)
+                      ),
+           charCt = c(sum(nchar(blogs)),sum(nchar(news)),sum(nchar(tweets)))
+           )
+bea$avgWdLn <- bea$wordCt/bea$lineCt
+bea$avgChWd <- bea$charCt/bea$wordCt
+colnames(bea) <- c("File", "Line Count", "Word Count", "Character Count", "Avg. Word/Line", "Avg Char/Word") 
+bea
+```
